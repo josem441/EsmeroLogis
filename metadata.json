@@ -1,0 +1,7 @@
+{
+  "name": "EsmeroLogistics VFinal",
+  "description": "Smart logistics optimization app for Medellín and Valle de Aburrá. Upload routes via Excel, optimize with AI, and navigate seamlessly using Waze or Google Maps.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
