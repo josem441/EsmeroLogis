@@ -5,8 +5,10 @@ const FACTORY_ADDRESS = "Cl. 41 #47 - 33, Angeles, Itagüi, Antioquia";
 
 // Initialize Gemini Client Lazily
 const getAiClient = () => {
-  // HARDCODED API KEY AS REQUESTED BY USER
-  const apiKey = "AIzaSyDYrRMHrnnK2QR__axh4VmO1xLoC4TufoA";
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key no configurada. Por favor configura VITE_GEMINI_API_KEY en tus variables de entorno.");
+  }
   return new GoogleGenAI({ apiKey });
 };
 
