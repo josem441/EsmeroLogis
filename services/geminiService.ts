@@ -121,11 +121,17 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
         // Attempt 1: Try with the powerful Pro model (Reasoning)
         // 60s timeout for Pro
         result = await performApiCall('gemini-3.1-pro-preview', 60000);
-    } catch (proError) {
+    } catch (proError: any) {
         console.warn("Pro model failed, switching to Flash fallback:", proError);
-        // Attempt 2: Fallback to Flash model (Faster, less reasoning but reliable)
-        // 30s timeout for Flash
-        result = await performApiCall('gemini-2.0-flash', 30000);
+        try {
+             // Attempt 2: Fallback to Flash model (Faster, less reasoning but reliable)
+             // 30s timeout for Flash
+             // Using gemini-1.5-flash as it is the most stable/widely available model
+             result = await performApiCall('gemini-1.5-flash', 30000);
+        } catch (flashError: any) {
+             console.warn("Flash model failed too:", flashError);
+             throw new Error(`All models failed. Pro: ${proError?.message}. Flash: ${flashError?.message}`);
+        }
     }
     
     // Reorder logic
@@ -155,11 +161,10 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
     console.error("Optimization failed after retries:", error);
     
     const errorMessage = error?.message || "Error desconocido";
-    const isApiKeyError = errorMessage.includes("API Key") || errorMessage.includes("403") || errorMessage.includes("401");
     
     // 3. Fallback - Specific markers for UI detection
     return {
-      reasoning: `FALLBACK_MODE: ${isApiKeyError ? "Error de API Key. Verifica tu configuración en Vercel." : "El sistema de IA está saturado. Se muestra el orden original."}`,
+      reasoning: `FALLBACK_MODE: Error Técnico: ${errorMessage.substring(0, 100)}...`,
       keyHighlight: "Modo manual activo: No se aplicó inteligencia artificial.",
       zoneSummary: [{ zoneName: "Sin Optimizar", orderCount: orders.length }],
       optimizedOrders: orders
