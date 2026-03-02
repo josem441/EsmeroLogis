@@ -120,19 +120,18 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
   try {
     let result;
     try {
-        // Attempt 1: Try with the powerful Pro model (Reasoning)
-        // 60s timeout for Pro
-        result = await performApiCall('gemini-3.1-pro-preview', 60000);
-    } catch (proError: any) {
-        console.warn("Pro model failed, switching to Flash fallback:", proError);
+        // Attempt 1: Try with Gemini 2.0 Flash (Great balance of intelligence and speed - The "Intermediate" choice)
+        // 45s timeout
+        result = await performApiCall('gemini-2.0-flash', 45000);
+    } catch (flash2Error: any) {
+        console.warn("Gemini 2.0 Flash failed, switching to 1.5 Flash fallback:", flash2Error);
         try {
-             // Attempt 2: Fallback to Flash model (Faster, less reasoning but reliable)
-             // 30s timeout for Flash
-             // Using gemini-1.5-flash as it is the most stable/widely available model
+             // Attempt 2: Fallback to Gemini 1.5 Flash (Most stable/high limits)
+             // 30s timeout
              result = await performApiCall('gemini-1.5-flash', 30000);
-        } catch (flashError: any) {
-             console.warn("Flash model failed too:", flashError);
-             throw new Error(`All models failed. Pro: ${proError?.message}. Flash: ${flashError?.message}`);
+        } catch (flash1Error: any) {
+             console.warn("Gemini 1.5 Flash failed too:", flash1Error);
+             throw new Error(`All models failed. 2.0 Flash: ${flash2Error?.message}. 1.5 Flash: ${flash1Error?.message}`);
         }
     }
     
