@@ -3,8 +3,14 @@ import { Order, OptimizedRouteResult } from '../types';
 
 const FACTORY_ADDRESS = "Cl. 41 #47 - 33, Angeles, Itagüi, Antioquia";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini Client Lazily
+const getAiClient = () => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("API Key no configurada. Por favor configura VITE_GEMINI_API_KEY en tus variables de entorno.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 // Retry helper function
 async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
@@ -19,7 +25,19 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay
 
 export const optimizeRouteWithGemini = async (orders: Order[]): Promise<OptimizedRouteResult> => {
   
-  // 1. Enhanced Input: Include more context if available
+  // Initialize client here to avoid top-level crashes
+  let ai;
+  try {
+    ai = getAiClient();
+  } catch (e) {
+    console.error("Gemini Client Init Error:", e);
+    return {
+      reasoning: "ERROR DE CONFIGURACIÓN: No se encontró la API Key.",
+      keyHighlight: "Configura VITE_GEMINI_API_KEY en Vercel.",
+      zoneSummary: [],
+      optimizedOrders: orders
+    };
+  }
   const orderListString = orders.map((o) => 
     `{id:"${o.id}", client:"${o.clientName}", addr:"${o.address}"}`
   ).join("\n");
