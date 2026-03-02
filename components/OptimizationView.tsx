@@ -89,7 +89,7 @@ export const OptimizationView: React.FC<OptimizationViewProps> = ({ data, onRese
                          <div className="flex-1">
                              <h4 className="text-sm font-bold text-amber-800">Optimización Inteligente No Disponible</h4>
                              <p className="text-xs text-amber-700 mt-1">
-                                 La IA no respondió a tiempo. Se muestra el orden original del archivo.
+                                 {data.reasoning.replace("FALLBACK_MODE: ", "")}
                              </p>
                          </div>
                          <button 

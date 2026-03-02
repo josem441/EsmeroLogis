@@ -73,14 +73,13 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
   `;
 
   // Define the API call logic wrapped in a function
-  const performApiCall = async () => {
-    // INCREASED TIMEOUT: 90 seconds for complex reasoning
+  const performApiCall = async (modelName: string, timeoutMs: number) => {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Timeout")), 90000);
+      setTimeout(() => reject(new Error(`Timeout (${timeoutMs}ms)`)), timeoutMs);
     });
 
     const apiCallPromise = ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview', // Using the latest reasoning model
+      model: modelName,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -119,8 +118,17 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
   };
 
   try {
-    // 2. Execute with Retry Logic
-    const result = await retryOperation(performApiCall, 2, 2000);
+    let result;
+    try {
+        // Attempt 1: Try with the powerful Pro model (Reasoning)
+        // 60s timeout for Pro
+        result = await performApiCall('gemini-3.1-pro-preview', 60000);
+    } catch (proError) {
+        console.warn("Pro model failed, switching to Flash fallback:", proError);
+        // Attempt 2: Fallback to Flash model (Faster, less reasoning but reliable)
+        // 30s timeout for Flash
+        result = await performApiCall('gemini-2.0-flash', 30000);
+    }
     
     // Reorder logic
     const reorderedOrders: Order[] = [];
@@ -145,12 +153,15 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
       optimizedOrders: reorderedOrders.length > 0 ? reorderedOrders : orders,
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Optimization failed after retries:", error);
+    
+    const errorMessage = error?.message || "Error desconocido";
+    const isApiKeyError = errorMessage.includes("API Key") || errorMessage.includes("403") || errorMessage.includes("401");
     
     // 3. Fallback - Specific markers for UI detection
     return {
-      reasoning: "FALLBACK_MODE: Sistema saturado o tiempo de espera agotado. Se muestra el orden original.",
+      reasoning: `FALLBACK_MODE: ${isApiKeyError ? "Error de API Key. Verifica tu configuración en Vercel." : "El sistema de IA está saturado. Se muestra el orden original."}`,
       keyHighlight: "Modo manual activo: No se aplicó inteligencia artificial.",
       zoneSummary: [{ zoneName: "Sin Optimizar", orderCount: orders.length }],
       optimizedOrders: orders
