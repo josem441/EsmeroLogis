@@ -120,21 +120,21 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
   try {
     let result;
     try {
-        // Attempt 1: Try with Gemini 2.0 Flash (Great balance of intelligence and speed - The "Intermediate" choice)
+        // Attempt 1: Try with Gemini 3 Flash (New generation, smarter than 1.5 Flash, faster than Pro)
         // 45s timeout
-        result = await performApiCall('gemini-2.0-flash', 45000);
-    } catch (flash2Error: any) {
-        console.warn("Gemini 2.0 Flash failed, switching to 1.5 Flash fallback:", flash2Error);
+        result = await performApiCall('gemini-3-flash-preview', 45000);
+    } catch (flash3Error: any) {
+        console.warn("Gemini 3 Flash failed, switching to 1.5 Flash fallback:", flash3Error);
         try {
              // Attempt 2: Fallback to Gemini 1.5 Flash (Most stable/high limits)
              // 30s timeout
              result = await performApiCall('gemini-1.5-flash', 30000);
         } catch (flash1Error: any) {
              console.warn("Gemini 1.5 Flash failed too:", flash1Error);
-             throw new Error(`All models failed. 2.0 Flash: ${flash2Error?.message}. 1.5 Flash: ${flash1Error?.message}`);
+             throw new Error(`All models failed. 3 Flash: ${flash3Error?.message}. 1.5 Flash: ${flash1Error?.message}`);
         }
     }
-    
+
     // Reorder logic
     const reorderedOrders: Order[] = [];
     if (result.optimizedOrderIds && Array.isArray(result.optimizedOrderIds)) {
@@ -165,7 +165,7 @@ export const optimizeRouteWithGemini = async (orders: Order[]): Promise<Optimize
     
     // 3. Fallback - Specific markers for UI detection
     return {
-      reasoning: `FALLBACK_MODE: Error Técnico: ${errorMessage.substring(0, 100)}...`,
+      reasoning: `FALLBACK_MODE: Error Técnico: ${errorMessage}`, // Removed substring limit to show full error
       keyHighlight: "Modo manual activo: No se aplicó inteligencia artificial.",
       zoneSummary: [{ zoneName: "Sin Optimizar", orderCount: orders.length }],
       optimizedOrders: orders
